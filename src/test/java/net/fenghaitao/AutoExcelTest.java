@@ -44,9 +44,12 @@ public class AutoExcelTest {
         // (Optional operation) Remove unnecessary sheets
         ExcelSetting excelSetting = new ExcelSetting();
         excelSetting.setRemovedSheets(Arrays.asList("will be removed"));
-
-        AutoExcel.save(this.getClass().getResource("/template/Export.xlsx").getPath(),
-                this.getClass().getResource("/").getPath() + "AutoExcel.xlsx",
+        String exportTemplateFilePath = this.getClass().getResource("/template/Export.xlsx").getPath();
+        String exportFilePath = this.getClass().getResource("/").getPath() + "AutoExcel.xlsx";
+        System.out.println("模板路径： " + exportTemplateFilePath);
+        System.out.println("导出文件路径： " + exportFilePath);
+        AutoExcel.save(exportTemplateFilePath,
+                exportFilePath,
                 paras,
                 excelSetting);
     }

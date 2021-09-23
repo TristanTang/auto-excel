@@ -66,8 +66,9 @@ public class AutoExcel {
             actionBehind = workbook -> {
                 excelSetting.getRemovedSheets().forEach(sheetName -> {
                     int sheetIndex = workbook.getSheetIndex(sheetName);
-                    if (sheetIndex >= 0)
+                    if (sheetIndex >= 0) {
                         workbook.removeSheetAt(sheetIndex);
+                    }
                 });
             };
         }
@@ -88,33 +89,40 @@ public class AutoExcel {
                             List<TemplateExportPara> templateExportParas,
                             Consumer<Workbook> actionAhead,
                             Consumer<Workbook> actionBehind) {
-        if (!(new File(templatePath)).exists())
+        if (!(new File(templatePath)).exists()) {
             throw new AutoExcelException("Cannot find template file: " + templatePath);
+        }
 
         ExportContext exportContext = new ExportContext(templatePath, ExportType.Template);
         Workbook workbook = exportContext.getWorkbook();
 
         //action before internal operations
-        if (actionAhead != null)
+        if (actionAhead != null) {
             actionAhead.accept(workbook);
+        }
 
         List<BlockNameResolver> blockNameResolvers = resolveCellNames(workbook, templateExportParas, exportContext);
 
         //cache the properties of data source to be used
         Map<String, Map<String, Field>> dataSourceNameFields = new HashMap<>(16);
         for (TemplateExportPara templateExportPara : templateExportParas) {
-            if (templateExportPara.getDataSource() != null && templateExportPara.getRecordCount() > 0)
+            if (templateExportPara.getDataSource() != null && templateExportPara.getRecordCount() > 0) {
                 dataSourceNameFields.put(templateExportPara.getDataSourceName().toLowerCase(), mapFieldNameField(templateExportPara.getObjectType()));
+            }
         }
 
         boolean forceFormulaRecalculation = false;
         //insert data into template
         for (BlockNameResolver blockNameResolver : blockNameResolvers) {
             TemplateExportPara templateExportPara = blockNameResolver.getPara();
-            if (templateExportPara == null) continue;
+            if (templateExportPara == null) {
+                continue;
+            }
 
             Object dataSource = templateExportPara.getDataSource();
-            if (dataSource == null) continue;
+            if (dataSource == null) {
+                continue;
+            }
 
             Sheet sheet = blockNameResolver.getSheet();
             int recordCount = templateExportPara.getRecordCount();
@@ -149,8 +157,9 @@ public class AutoExcel {
                         SheetUtil.setColumnWidth(sheet, startColIndex, recordCount, exportContext);
                     }
 
-                    if (blockNameResolver.getFormulaCellManagers().size() > 0 || blockNameResolver.getFieldNameAggregateCells().size() > 0)
+                    if (blockNameResolver.getFormulaCellManagers().size() > 0 || blockNameResolver.getFieldNameAggregateCells().size() > 0) {
                         forceFormulaRecalculation = true;
+                    }
                 }
                 //if data source is a basic object
                 else {
@@ -164,11 +173,13 @@ public class AutoExcel {
         }
 
         //action after internal operations
-        if (actionBehind != null)
+        if (actionBehind != null) {
             actionBehind.accept(workbook);
+        }
 
-        if (forceFormulaRecalculation)
+        if (forceFormulaRecalculation) {
             workbook.setForceFormulaRecalculation(true);
+        }
 
         exportContext.end(outputPath);
     }
@@ -197,13 +208,15 @@ public class AutoExcel {
         Sheet sheet;
 
         for (DirectExportPara directExportPara : directExportParas) {
-            if (directExportPara.getDataSource() == null)
+            if (directExportPara.getDataSource() == null) {
                 continue;
+            }
 
-            if (directExportPara.getSheetName() == null || directExportPara.getSheetName().isEmpty())
+            if (directExportPara.getSheetName() == null || directExportPara.getSheetName().isEmpty()) {
                 sheet = workbook.createSheet();
-            else
+            } else {
                 sheet = workbook.createSheet(directExportPara.getSheetName());
+            }
 
             DataSourceType dataSourceType = directExportPara.getDataSourceType();
             Map<String, Field> fieldNameFields = mapFieldNameField(directExportPara.getObjectType());
@@ -264,7 +277,9 @@ public class AutoExcel {
         //Iterate over all cell names, categorize by data source name, and resolve the column and row indexes corresponding to cell names
         for (Name name : names) {
             //'name.IsDeleted == true' means the cell doesn't exist
-            if (name.isDeleted()) continue;
+            if (name.isDeleted()) {
+                continue;
+            }
 
             String sheetName = name.getSheetName();
             String cellName = name.getNameName();
@@ -275,7 +290,9 @@ public class AutoExcel {
             * 3. dataSourceName.RowNo, eg. cb_product.RowNo
             */
             String[] arr = cellName.split("\\.");
-            if (arr.length < 2) continue;
+            if (arr.length < 2) {
+                continue;
+            }
 
             if (!currDataSourceName.equalsIgnoreCase(arr[0])) {
                 currDataSourceName = arr[0].toLowerCase();
@@ -304,7 +321,9 @@ public class AutoExcel {
             }
 
             Matcher matcher = pattern.matcher(name.getRefersToFormula());
-            if (!matcher.matches()) continue;
+            if (!matcher.matches()) {
+                continue;
+            }
 
             int rowIndex = Integer.parseInt(matcher.group(2)) - 1;
             int colIndex = WorkbookUtil.colNameToIndex(matcher.group(1));
@@ -313,8 +332,9 @@ public class AutoExcel {
             //When the current cell is a ternary cell
             if (arr.length == 3) {
                 if (secondPart.equals("formula")) {
-                    if (cell.getCellType() != CellType.FORMULA)
+                    if (cell.getCellType() != CellType.FORMULA) {
                         continue;
+                    }
 
                     FormulaCellManager formulaCellManager = new FormulaCellManager();
                     formulaCellManager.setCellName(cellName);
@@ -367,8 +387,9 @@ public class AutoExcel {
      */
     private static Map<String, Field> mapFieldNameField(Class aClass) {
         Map<String, Field> result = new HashMap<>(16);
-        for (Field field : aClass.getDeclaredFields())
+        for (Field field : aClass.getDeclaredFields()) {
             result.put(field.getName().toLowerCase(), field);
+        }
 
         return result;
     }
@@ -379,8 +400,9 @@ public class AutoExcel {
      */
     private static void reLocate(List<BlockNameResolver> blockNameResolvers, String currSheetName, ExportContext exportContext) {
         for (BlockNameResolver blockNameResolver : blockNameResolvers) {
-            if (!blockNameResolver.getSheetName().equals(currSheetName))
+            if (!blockNameResolver.getSheetName().equals(currSheetName)) {
                 continue;
+            }
 
             String regex = String.format(regCellName, currSheetName);
             Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
@@ -430,17 +452,20 @@ public class AutoExcel {
                 int colIndex = cellManager.getColIndex();
 
                 DataDirection dataDirection = blockNameResolver.getPara().getDataDirection();
-                if (dataDirection == DataDirection.Down)
+                if (dataDirection == DataDirection.Down) {
                     rowIndex += step;
-                else
+                } else {
                     colIndex += step;
+                }
 
                 Cell cell = SheetUtil.setValue(blockNameResolver.getSheet(), rowIndex, colIndex, cellValue, exportContext);
-                if (dataDirection == DataDirection.Right)
+                if (dataDirection == DataDirection.Right) {
                     exportContext.refreshMaxColumnWidth(blockNameResolver.getSheet().getSheetName(), colIndex, cellValue);
+                }
 
-                if (blockNameResolver.getPara().isCopyCellStyle())
+                if (blockNameResolver.getPara().isCopyCellStyle()) {
                     cell.setCellStyle(cellManager.getCellStyle());
+                }
             }
         }
     }
@@ -484,20 +509,24 @@ public class AutoExcel {
                 String colName = cellMgr.getColName();
                 switch (aggregateCellManager.getAggregateType()) {
                     case SUM:
-                        if (blockNameResolver.getPara().getDataDirection() == DataDirection.Down)
+                        if (blockNameResolver.getPara().getDataDirection() == DataDirection.Down) {
                             aggregateCell.setCellFormula(String.format("SUM(%1$s%2$s:%1$s%3$s)", colName,
                                     rowIndex + 1, rowIndex + recordCount));
-                        else
+                        } else {
                             aggregateCell.setCellFormula(String.format("SUM(%1$s%2$s:%3$s%2$s)", colName,
                                     rowIndex + 1, WorkbookUtil.indexToColName(colIndex + recordCount - 1)));
+                        }
                         break;
                     case AVG:
-                        if (blockNameResolver.getPara().getDataDirection() == DataDirection.Down)
+                        if (blockNameResolver.getPara().getDataDirection() == DataDirection.Down) {
                             aggregateCell.setCellFormula(String.format("AVERAGE(%1$s%2$s:%1$s%3$s)", colName,
                                     rowIndex + 1, rowIndex + recordCount));
-                        else
+                        } else {
                             aggregateCell.setCellFormula(String.format("AVERAGE(%1$s%2$s:%3$s%2$s)", colName,
                                     rowIndex + 1, WorkbookUtil.indexToColName(colIndex + recordCount - 1)));
+                        }
+                        break;
+                    default:
                         break;
                 }
             }
@@ -508,8 +537,9 @@ public class AutoExcel {
      * Write formula
      */
     private static void writeFormula(BlockNameResolver blockNameResolver, int step, ExportContext exportContext) {
-        if (step < 1)
+        if (step < 1) {
             return;
+        }
 
         blockNameResolver.getFormulaCellManagers().forEach(formulaCellManager -> {
             Matcher matcher = cellRefPattern.matcher(formulaCellManager.getFormula());
@@ -518,10 +548,11 @@ public class AutoExcel {
                 String colName = matcher.group(1);
                 String rowIndex = matcher.group(2);
                 String replacement;
-                if (blockNameResolver.getPara().getDataDirection() == DataDirection.Down)
+                if (blockNameResolver.getPara().getDataDirection() == DataDirection.Down) {
                     replacement = colName + (Integer.parseInt(rowIndex) + step);
-                else
+                } else {
                     replacement = WorkbookUtil.getColName(colName, step) + rowIndex;
+                }
 
                 matcher.appendReplacement(sb, replacement);
             }
@@ -530,10 +561,11 @@ public class AutoExcel {
 
             int newRowIndex = formulaCellManager.getRowIndex();
             int newColIndex = formulaCellManager.getColIndex();
-            if (blockNameResolver.getPara().getDataDirection() == DataDirection.Down)
+            if (blockNameResolver.getPara().getDataDirection() == DataDirection.Down) {
                 newRowIndex += step;
-            else
+            } else {
                 newColIndex += step;
+            }
 
             Cell cell = SheetUtil.getOrCreateCell(blockNameResolver.getSheet(), newRowIndex, newColIndex, exportContext);
             cell.setCellFormula(formula);
@@ -546,8 +578,9 @@ public class AutoExcel {
      */
     private static void writeRowNo(BlockNameResolver blockNameResolver, int step, ExportContext exportContext) {
         RowNoCellManager rowNoCellMgr = blockNameResolver.getRowNoCellManager();
-        if (rowNoCellMgr == null || blockNameResolver.getPara().getDataDirection() != DataDirection.Down)
+        if (rowNoCellMgr == null || blockNameResolver.getPara().getDataDirection() != DataDirection.Down) {
             return;
+        }
 
         SheetUtil.setValue(blockNameResolver.getSheet(), rowNoCellMgr.getRowIndex() + step, rowNoCellMgr.getColIndex(),
                 step + 1, exportContext)
@@ -562,8 +595,9 @@ public class AutoExcel {
      * @return
      */
     public static DataSet read(String fileName, List<ImportPara> importParas) {
-        if (!(new File(fileName)).exists())
+        if (!(new File(fileName)).exists()) {
             throw new AutoExcelException("File not found: " + fileName);
+        }
 
         ImportContext importContext = new ImportContext(importParas);
         ExcelReader reader = new ExcelReader(importContext);
